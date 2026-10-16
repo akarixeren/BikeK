@@ -1,0 +1,331 @@
+﻿<Window x:Class="BikeKings_System.Views.StoreClerk.StoreClerkDashboardWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:admin="clr-namespace:BikeKings_System.Views.Admin"
+        Title="Bike Kings Cycle &amp; Motor Repair Management System - Inventory Manager"
+        Height="850" Width="1350"
+        WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
+        Background="#0F0C15">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="260"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- ======================================================== -->
+        <!-- ── 1. DARK SIDEBAR ───────────────────────────────────── -->
+        <!-- ======================================================== -->
+        <Border Grid.Column="0" Background="#16131C" BorderBrush="#251F30" BorderThickness="0,0,1,0" Padding="16,20">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Brand Header -->
+                <StackPanel Grid.Row="0" Margin="4,0,0,20">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="👑" FontSize="20" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="BIKE KINGS" FontSize="17" FontWeight="Black" Foreground="#FFFFFF"/>
+                    </StackPanel>
+                    <TextBlock Text="CYCLE &amp; MOTOR REPAIR" FontSize="9.5" FontWeight="Bold" Foreground="#E63956" Margin="28,2,0,0"/>
+                </StackPanel>
+
+                <!-- Store Clerk User Profile Card -->
+                <Border Grid.Row="1" Background="#110E17" CornerRadius="10" Padding="12" Margin="0,0,0,20" BorderBrush="#251F30" BorderThickness="1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="40"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Width="36" Height="36" CornerRadius="18" Background="#2A1B28" BorderBrush="#E63956" BorderThickness="1">
+                            <TextBlock Text="MR" Foreground="#E63956" FontWeight="Bold" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                            <TextBlock x:Name="lblClerkName" Text="Mark Reyes" Foreground="#FFFFFF" FontWeight="Bold" FontSize="12"/>
+                            <Border Background="#162D24" CornerRadius="4" Padding="6,2" HorizontalAlignment="Left" Margin="0,4,0,0">
+                                <TextBlock Text="INVENTORY MANAGER" Foreground="#2ECC71" FontWeight="Bold" FontSize="8.5"/>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Navigation Menu Buttons -->
+                <StackPanel Grid.Row="2">
+                    <TextBlock Text="INVENTORY OPERATIONS" Foreground="#5E586E" FontWeight="Bold" FontSize="9.5" Margin="8,0,0,10"/>
+
+                    <!-- Inventory Tab (Default Active) -->
+                    <Button x:Name="navInventory" Tag="Inventory" Click="Nav_Click" Height="40" Margin="0,0,0,4" Cursor="Hand">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="btnBdr" Background="#E63956" CornerRadius="8" Padding="14,0">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="📦" FontSize="13" Margin="0,0,12,0"/>
+                                        <TextBlock x:Name="btnTxt" Text="Inventory" Foreground="#FFFFFF" FontWeight="SemiBold" FontSize="12.5"/>
+                                    </StackPanel>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
+                    <!-- Suppliers Tab -->
+                    <Button x:Name="navSuppliers" Tag="Suppliers" Click="Nav_Click" Height="40" Margin="0,0,0,4" Cursor="Hand">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="btnBdr" Background="Transparent" CornerRadius="8" Padding="14,0">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="🚚" FontSize="13" Margin="0,0,12,0"/>
+                                        <TextBlock x:Name="btnTxt" Text="Suppliers" Foreground="#9C95AD" FontWeight="SemiBold" FontSize="12.5"/>
+                                    </StackPanel>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
+                    <TextBlock Text="ACCOUNT" Foreground="#5E586E" FontWeight="Bold" FontSize="9.5" Margin="8,16,0,10"/>
+
+                    <!-- My Profile Tab -->
+                    <Button x:Name="navProfile" Tag="Profile" Click="Nav_Click" Height="40" Margin="0,0,0,4" Cursor="Hand">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="btnBdr" Background="Transparent" CornerRadius="8" Padding="14,0">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="👤" FontSize="13" Margin="0,0,12,0"/>
+                                        <TextBlock x:Name="btnTxt" Text="My Profile" Foreground="#9C95AD" FontWeight="SemiBold" FontSize="12.5"/>
+                                    </StackPanel>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
+
+                <!-- Logout Button -->
+                <Button Grid.Row="3" Height="38" Background="#26161D" Foreground="#FDA4AF" BorderThickness="1" BorderBrush="#3D1A25" Cursor="Hand" Click="BtnLogout_Click">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock Text="🚪" FontSize="13" Margin="0,0,8,0"/>
+                                    <TextBlock Text="Log Out" FontWeight="SemiBold" FontSize="12"/>
+                                </StackPanel>
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- ======================================================== -->
+        <!-- ── 2. MAIN CONTENT AREA ──────────────────────────────── -->
+        <!-- ======================================================== -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="64"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Top App Bar (Matched with Admin Layout) -->
+            <Border Grid.Row="0" Background="#131019" BorderBrush="#251F30" BorderThickness="0,0,0,1" Padding="24,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <!-- Title & Live Clock (Stacked Exactly Like Admin) -->
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                        <TextBlock x:Name="lblHeaderTitle" Text="Inventory" FontSize="20" FontWeight="Bold" Foreground="#FFFFFF"/>
+                        <TextBlock x:Name="lblDateTime" Text="Live Clock..." FontSize="11.5" Foreground="#787189" Margin="0,2,0,0"/>
+                    </StackPanel>
+                    <!-- Header Actions (Two-Tone Alert Badge + Top Export CSV Button) -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- Two-Tone Stock Alert Badge -->
+                        <Border x:Name="pnlStockAlertBadge" Background="#1D2A20" CornerRadius="8" Padding="12,6" Margin="0,0,12,0" Cursor="Hand" MouseLeftButtonUp="NotificationBadge_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="lblStockStatus" Text="✅ Normal Levels" FontSize="11.5" FontWeight="SemiBold" Foreground="#2ECC71"/>
+                                <Border Background="#2A1B28" CornerRadius="4" Padding="6,2" Margin="8,0,0,0">
+                                    <TextBlock x:Name="lblNotifBadge" Text="0 ALERTS" FontSize="9.5" FontWeight="Bold" Foreground="#2ECC71"/>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                        <!-- Top Export Button -->
+                        <Button Click="BtnTopExport_Click" Content="📥 Export CSV" Background="#221C2B" Foreground="#E2E8F0" BorderBrush="#352C44" BorderThickness="1" Height="34" Padding="14,0" Cursor="Hand">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="6"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Inner Views Switcher Container -->
+            <Grid Grid.Row="1">
+                <!-- ── VIEW 1: INVENTORY CONTROL (EXACT ADMIN CONTROL) ── -->
+                <admin:InventoryControl x:Name="pnlInventoryView" Visibility="Collapsed"/>
+
+                <!-- ── VIEW 2: SUPPLIERS CONTROL (EXACT ADMIN CONTROL) ── -->
+                <admin:SuppliersControl x:Name="pnlSuppliersView" Visibility="Collapsed"/>
+
+                <!-- ── VIEW 3: PROFILE / CHANGE PASSWORD ── -->
+                <Grid x:Name="pnlProfileView" Visibility="Collapsed" Margin="32,24,32,24">
+                    <Border Background="#16131C" BorderBrush="#251F30" BorderThickness="1" CornerRadius="12" Padding="28" MaxWidth="500" HorizontalAlignment="Left">
+                        <StackPanel>
+                            <TextBlock Text="My Profile &amp; Security" Foreground="#FFFFFF" FontWeight="Bold" FontSize="16" Margin="0,0,0,4"/>
+                            <TextBlock Text="Manage your credentials and password" Foreground="#8C849C" FontSize="11.5" Margin="0,0,0,20"/>
+
+                            <TextBlock Text="Full Name" Foreground="#8C849C" FontSize="11" Margin="0,0,0,6"/>
+                            <TextBox x:Name="txtProfileName" Text="Mark Reyes" IsReadOnly="True" Background="#110E17" Foreground="#7E768C" BorderBrush="#251F30" Height="36" Padding="10,8" Margin="0,0,0,16"/>
+
+                            <TextBlock Text="Username" Foreground="#8C849C" FontSize="11" Margin="0,0,0,6"/>
+                            <TextBox x:Name="txtProfileUsername" Text="clerk" IsReadOnly="True" Background="#110E17" Foreground="#7E768C" BorderBrush="#251F30" Height="36" Padding="10,8" Margin="0,0,0,16"/>
+
+                            <Separator Background="#251F30" Margin="0,10,0,20"/>
+
+                            <TextBlock Text="CHANGE PASSWORD" Foreground="#E63956" FontWeight="Bold" FontSize="11" Margin="0,0,0,14"/>
+
+                            <TextBlock Text="Current Password" Foreground="#8C849C" FontSize="11" Margin="0,0,0,6"/>
+                            <PasswordBox x:Name="pbCurrentPassword" Background="#110E17" Foreground="#FFFFFF" BorderBrush="#251F30" Height="36" Padding="10,8" Margin="0,0,0,16"/>
+
+                            <TextBlock Text="New Password" Foreground="#8C849C" FontSize="11" Margin="0,0,0,6"/>
+                            <PasswordBox x:Name="pbNewPassword" Background="#110E17" Foreground="#FFFFFF" BorderBrush="#251F30" Height="36" Padding="10,8" Margin="0,0,0,16"/>
+
+                            <TextBlock Text="Confirm New Password" Foreground="#8C849C" FontSize="11" Margin="0,0,0,6"/>
+                            <PasswordBox x:Name="pbConfirmPassword" Background="#110E17" Foreground="#FFFFFF" BorderBrush="#251F30" Height="36" Padding="10,8" Margin="0,0,0,24"/>
+
+                            <Button Content="Update Password" Click="BtnUpdatePassword_Click" Background="#E63956" Foreground="#FFFFFF" FontWeight="Bold" FontSize="12" Height="42" Cursor="Hand">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}" CornerRadius="8">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+
+            <!-- ── 3. FLOATING LOW STOCK NOTIFICATION DROPDOWN POPUP ── -->
+            <Border x:Name="dropdownNotification" Grid.Row="0" Grid.RowSpan="2" Panel.ZIndex="999" 
+                    Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Top" 
+                    Margin="0,58,28,0" Width="410" Background="#16131C" BorderBrush="#251F30" 
+                    BorderThickness="1.5" CornerRadius="12">
+                <Border.Effect>
+                    <DropShadowEffect Color="#000000" BlurRadius="30" ShadowDepth="10" Opacity="0.75"/>
+                </Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Header -->
+                    <Border Grid.Row="0" Background="#1D1826" CornerRadius="12,12,0,0" Padding="16,12" BorderBrush="#251F30" BorderThickness="0,0,0,1">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="🔔" FontSize="13" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <StackPanel>
+                                    <TextBlock Text="Low Stock &amp; Critical Alerts" Foreground="#FFFFFF" FontWeight="Bold" FontSize="12.5"/>
+                                    <TextBlock x:Name="lblNotifDropdownSubtitle" Text="0 products need replenishment" Foreground="#8C849C" FontSize="10.5" Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <Button HorizontalAlignment="Right" VerticalAlignment="Center" Width="24" Height="24" Background="#241E30" Foreground="#8C849C" BorderThickness="0" Cursor="Hand" Click="BtnCloseNotifDropdown_Click">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}" CornerRadius="12">
+                                            <TextBlock Text="✕" Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="9.5" FontWeight="Bold"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <!-- Scrollable Items List -->
+                    <ScrollViewer Grid.Row="1" MaxHeight="320" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="14,10">
+                            <!-- Empty Message -->
+                            <Border x:Name="pnlNotifEmpty" Background="#110E17" CornerRadius="8" Padding="16" Visibility="Collapsed">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="✅" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                                    <TextBlock Text="All Stock Levels Healthy" Foreground="#2ECC71" FontWeight="Bold" FontSize="12" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="No products are currently at or below reorder level" Foreground="#7E768C" FontSize="10.5" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Items List -->
+                            <ItemsControl x:Name="icDropdownAlerts">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#1D1826" BorderBrush="#251F30" BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,0,0,8" Cursor="Hand" MouseLeftButtonUp="NotifItem_Click" Tag="{Binding Barcode}">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <StackPanel Grid.Column="0">
+                                                    <TextBlock Text="{Binding ProductName}" Foreground="#FFFFFF" FontWeight="Bold" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Foreground="#8C849C" FontSize="10.5" Margin="0,3,0,0">
+                                                        <Run Text="SKU: "/><Run Text="{Binding Barcode}" FontWeight="SemiBold"/><Run Text=" • "/><Run Text="{Binding CategoryName}"/>
+                                                    </TextBlock>
+                                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                                        <TextBlock Text="{Binding StockQuantity, StringFormat='{}⚠️ {0} units in stock'}" Foreground="{Binding StatusTextColor}" FontWeight="Bold" FontSize="11"/>
+                                                        <TextBlock Text="{Binding ReorderLevel, StringFormat='{}  (ROP: {0})'}" Foreground="#7E768C" FontSize="10.5"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+
+                                                <Border Grid.Column="1" Background="{Binding StatusBgColor}" CornerRadius="6" Padding="8,4" VerticalAlignment="Center" Margin="8,0,0,0">
+                                                    <TextBlock Text="{Binding Status}" Foreground="{Binding StatusTextColor}" FontWeight="Bold" FontSize="9"/>
+                                                </Border>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- Footer Actions -->
+                    <Border Grid.Row="2" Background="#110E17" CornerRadius="0,0,12,12" Padding="14,10" BorderBrush="#251F30" BorderThickness="0,1,0,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="10"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Button Grid.Column="0" Height="32" Background="#241E30" Foreground="#D1CCE0" FontWeight="SemiBold" FontSize="11" BorderThickness="0" Cursor="Hand" Click="BtnNotifGoToMasterlist_Click">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}" CornerRadius="6">
+                                            <TextBlock Text="📦 View Masterlist" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+
+                            <Button Grid.Column="2" Height="32" Background="#E63956" Foreground="#FFFFFF" FontWeight="Bold" FontSize="11" BorderThickness="0" Cursor="Hand" Click="BtnNotifCreatePO_Click">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}" CornerRadius="6">
+                                            <TextBlock Text="📋 Create PO" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

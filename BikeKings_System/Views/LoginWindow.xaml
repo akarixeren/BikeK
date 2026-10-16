@@ -1,0 +1,234 @@
+﻿<Window x:Class="BikeKings_System.Views.LoginWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:BikeKings_System.Views"
+        mc:Ignorable="d"
+        Title="Bike Kings Cycle and Motor Repair Shop"
+        Height="680" Width="850"
+        MinHeight="600" MinWidth="650"
+        WindowStartupLocation="CenterScreen"
+        Background="#141118"
+        FontFamily="Segoe UI">
+    <Grid>
+        <!-- ── CENTER CARD ── -->
+        <Border Width="400"
+                Background="#1C1824"
+                BorderBrush="#292334"
+                BorderThickness="1"
+                CornerRadius="16"
+                Padding="32,36"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Center">
+            <Border.Effect>
+                <DropShadowEffect Color="#000000" BlurRadius="30" ShadowDepth="8" Opacity="0.6"/>
+            </Border.Effect>
+            <StackPanel>
+                <!-- ── CIRCLE LOGO BADGE ── -->
+                <Border Width="68" Height="68"
+                        Background="#E63956"
+                        CornerRadius="34"
+                        HorizontalAlignment="Center"
+                        Margin="0,0,0,16">
+                    <Border.Effect>
+                        <DropShadowEffect Color="#E63956" BlurRadius="18" ShadowDepth="0" Opacity="0.4"/>
+                    </Border.Effect>
+                    <!-- Motorcycle Emoji Icon -->
+                    <TextBlock Text="🏍"
+                               FontSize="30"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               Margin="0,0,0,2"/>
+                </Border>
+
+                <!-- ── APP TITLE ── -->
+                <TextBlock Text="BIKE KINGS"
+                           FontSize="22"
+                           FontWeight="Bold"
+                           Foreground="#FFFFFF"
+                           HorizontalAlignment="Center"/>
+
+                <!-- ── SUBTITLE ── -->
+                <TextBlock Text="Sales &amp; Inventory Management System"
+                           FontSize="11"
+                           Foreground="#8C879B"
+                           HorizontalAlignment="Center"
+                           Margin="0,4,0,26"/>
+
+                <!-- ── USERNAME LABEL ── -->
+                <StackPanel Orientation="Horizontal" Margin="2,0,0,6">
+                    <TextBlock Text="👤" FontSize="11" Foreground="#9C96AC" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="Username" FontSize="12" FontWeight="SemiBold" Foreground="#9C96AC" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- ── USERNAME INPUT BOX ── -->
+                <Border Background="#120F17"
+                        BorderBrush="#2C2638"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Height="44"
+                        Padding="12,0"
+                        Margin="0,0,0,18">
+                    <Grid VerticalAlignment="Center">
+                        <TextBox x:Name="txtUsername"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 Foreground="#FFFFFF"
+                                 CaretBrush="#FFFFFF"
+                                 FontSize="13"
+                                 VerticalAlignment="Center"
+                                 GotFocus="TxtUsername_GotFocus"
+                                 LostFocus="TxtUsername_LostFocus"/>
+
+                        <!-- Placeholder -->
+                        <TextBlock x:Name="phUsername"
+                                   Text="Enter username"
+                                   Foreground="#565064"
+                                   FontSize="13"
+                                   IsHitTestVisible="False"
+                                   VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+
+                <!-- ── PASSWORD LABEL ── -->
+                <StackPanel Orientation="Horizontal" Margin="2,0,0,6">
+                    <TextBlock Text="🔒" FontSize="11" Foreground="#9C96AC" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="Password" FontSize="12" FontWeight="SemiBold" Foreground="#9C96AC" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- ── PASSWORD INPUT BOX WITH EYE TOGGLE BUTTON ── -->
+                <Border Background="#120F17"
+                        BorderBrush="#2C2638"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Height="44"
+                        Padding="12,0,8,0"
+                        Margin="0,0,0,14">
+                    <Grid VerticalAlignment="Center">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Masked Password -->
+                        <PasswordBox x:Name="txtPassword"
+                                     Grid.Column="0"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     Foreground="#FFFFFF"
+                                     CaretBrush="#FFFFFF"
+                                     FontSize="13"
+                                     VerticalAlignment="Center"
+                                     GotFocus="TxtPassword_GotFocus"
+                                     LostFocus="TxtPassword_LostFocus"
+                                     PasswordChanged="TxtPassword_PasswordChanged"
+                                     KeyDown="TxtPassword_KeyDown"/>
+
+                        <!-- Plain Text Revealed Password -->
+                        <TextBox x:Name="txtPasswordRevealed"
+                                 Grid.Column="0"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 Foreground="#FFFFFF"
+                                 CaretBrush="#FFFFFF"
+                                 FontSize="13"
+                                 VerticalAlignment="Center"
+                                 Visibility="Collapsed"
+                                 GotFocus="TxtPasswordRevealed_GotFocus"
+                                 LostFocus="TxtPasswordRevealed_LostFocus"
+                                 TextChanged="TxtPasswordRevealed_TextChanged"
+                                 KeyDown="TxtPassword_KeyDown"/>
+
+                        <!-- Placeholder -->
+                        <TextBlock x:Name="phPassword"
+                                   Grid.Column="0"
+                                   Text="Enter password"
+                                   Foreground="#565064"
+                                   FontSize="13"
+                                   IsHitTestVisible="False"
+                                   VerticalAlignment="Center"/>
+
+                        <!-- Eye Toggle Button -->
+                        <Button Grid.Column="1"
+                                x:Name="btnTogglePassword"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Cursor="Hand"
+                                Padding="6,4"
+                                VerticalAlignment="Center"
+                                Click="BtnTogglePassword_Click">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <TextBlock x:Name="lblEyeIcon" Text="👁️" FontSize="14" Foreground="#8C879B"/>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <!-- ── ERROR MESSAGE BANNER ── -->
+                <Border x:Name="pnlError"
+                        Background="#3A151D"
+                        BorderBrush="#68212D"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="12,8"
+                        Margin="0,0,0,14"
+                        Visibility="Collapsed">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <TextBlock Text="⚠️ " FontSize="11" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="lblError"
+                                   Text="Invalid username or password."
+                                   Foreground="#FF7D91"
+                                   FontSize="12"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- ── LOGIN BUTTON ── -->
+                <Button x:Name="btnLogin"
+                        Height="46"
+                        Cursor="Hand"
+                        Click="BtnLogin_Click">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="btnBorder"
+                                    Background="#E63956"
+                                    CornerRadius="8">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock x:Name="btnText"
+                                               Text="Log In"
+                                               FontSize="14"
+                                               FontWeight="Bold"
+                                               Foreground="#FFFFFF"
+                                               Margin="0,0,6,0"/>
+                                    <TextBlock Text="➔"
+                                               FontSize="13"
+                                               FontWeight="Bold"
+                                               Foreground="#FFFFFF"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="btnBorder" Property="Background" Value="#F24765"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="btnBorder" Property="Background" Value="#C92944"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+
+                <!-- ── FOOTER VERSION TEXT ── -->
+                <TextBlock Text="Authorized personnel only. Version 1.0"
+                           Foreground="#4E485B"
+                           FontSize="10"
+                           HorizontalAlignment="Center"
+                           Margin="0,22,0,0"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
