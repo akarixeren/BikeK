@@ -13,6 +13,13 @@ GO
 
 BEGIN TRANSACTION;
 
+-- 🛡️ 0. Ensure optional columns exist if not already present
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Products') AND name = 'CriticalLimit')
+    ALTER TABLE Products ADD CriticalLimit INT NOT NULL DEFAULT 2;
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Mechanics') AND name = 'CommissionRate')
+    ALTER TABLE Mechanics ADD CommissionRate DECIMAL(5,2) NOT NULL DEFAULT 70.00;
+
 SET NOCOUNT ON;
 
 PRINT '====================================================================';
@@ -270,112 +277,145 @@ DEALLOCATE svc_cursor;
 PRINT '✔️ Master tables (Users, Mechanics, Categories, Brands, Suppliers, Products, Services) connected.';
 
 -- 📋 10. REALISTIC PURCHASE ORDERS & HISTORY LOGS
-DECLARE @NewPOID INT;
-
 -- PO 1: Motul Philippines (Aug 18, 2026)
-INSERT INTO PurchaseOrders (PONumber, SupplierID, RequesterName, RequestedBy, TotalAmount, Status, Remarks, Terms, ShippedVia, OrderDate, ExpectedDate, CreatedAt)
-VALUES ('PO-20260818-4001', 1, 'Mark Reyes', 3, 27600.00, 'Received', 'Initial stock-in of Motul engine & gear oils and cleaner sprays', 'Net 30', 'Motul Logistics Van', '2026-08-18 09:00:00', '2026-08-20 14:00:00', '2026-08-18 09:00:00');
-SET @NewPOID = SCOPE_IDENTITY();
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 1, 'Motul Scooter Expert LE 10W40 4T (800ml)', 'pcs', 60, 180.00, 10800.00);
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 2, 'Motul Scooter Gear Oil 80W90 (120ml)', 'pcs', 60, 60.00, 3600.00);
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 3, 'Motul Brake & Parts Clean Spray (400ml)', 'pcs', 40, 150.00, 6000.00);
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 4, 'Motul Chain Lube Road C2 Spray (400ml)', 'pcs', 38, 190.00, 7200.00);
-INSERT INTO StockTransactions VALUES (1, 'Stock-In', 60, 'PO-20260818-4001', 'PO Delivery', 'Received from Motul Philippines', 'Mark Reyes', '2026-08-20 14:00:00');
-INSERT INTO StockTransactions VALUES (2, 'Stock-In', 60, 'PO-20260818-4001', 'PO Delivery', 'Received from Motul Philippines', 'Mark Reyes', '2026-08-20 14:00:00');
-INSERT INTO StockTransactions VALUES (3, 'Stock-In', 40, 'PO-20260818-4001', 'PO Delivery', 'Received from Motul Philippines', 'Mark Reyes', '2026-08-20 14:00:00');
-INSERT INTO StockTransactions VALUES (4, 'Stock-In', 38, 'PO-20260818-4001', 'PO Delivery', 'Received from Motul Philippines', 'Mark Reyes', '2026-08-20 14:00:00');
-INSERT INTO AuditLogs VALUES (3, 'clerk', 'Inventory Manager', 'PURCHASE_ORDER', 'Created Purchase Order PO-20260818-4001 for Motul Philippines (Total: ₱27,600.00)', '2026-08-18 09:00:00');
-INSERT INTO AuditLogs VALUES (3, 'clerk', 'Inventory Manager', 'STOCK_IN', 'Verified delivery and received items for PO-20260818-4001 into inventory.', '2026-08-20 14:00:00');
+INSERT INTO PurchaseOrders (PONumber, SupplierID, RequesterName, TotalAmount, Status, Remarks, Terms, ShippedVia, OrderDate, ExpectedDate)
+VALUES ('PO-20260818-4001', 1, 'Mark Reyes', 27600.00, 'Received', 'Initial stock-in of Motul engine & gear oils and cleaner sprays', 'Net 30', 'Motul Logistics Van', '2026-08-18 09:00:00', '2026-08-20 14:00:00');
+
+INSERT INTO PurchaseOrderItems (POID, ProductID, ItemDescription, Unit, Quantity, UnitPrice, TotalPrice) VALUES 
+((SELECT MAX(POID) FROM PurchaseOrders), 1, 'Motul Scooter Expert LE 10W40 4T (800ml)', 'pcs', 60, 180.00, 10800.00),
+((SELECT MAX(POID) FROM PurchaseOrders), 2, 'Motul Scooter Gear Oil 80W90 (120ml)', 'pcs', 60, 60.00, 3600.00),
+((SELECT MAX(POID) FROM PurchaseOrders), 3, 'Motul Brake & Parts Clean Spray (400ml)', 'pcs', 40, 150.00, 6000.00),
+((SELECT MAX(POID) FROM PurchaseOrders), 4, 'Motul Chain Lube Road C2 Spray (400ml)', 'pcs', 38, 190.00, 7200.00);
+
+INSERT INTO StockTransactions (ProductID, TransactionType, Quantity, ReferenceNumber, Reason, Notes, ProcessedBy, TransactionDate) VALUES
+(1, 'Stock-In', 60, 'PO-20260818-4001', 'PO Delivery', 'Received from Motul Philippines', 'Mark Reyes', '2026-08-20 14:00:00'),
+(2, 'Stock-In', 60, 'PO-20260818-4001', 'PO Delivery', 'Received from Motul Philippines', 'Mark Reyes', '2026-08-20 14:00:00'),
+(3, 'Stock-In', 40, 'PO-20260818-4001', 'PO Delivery', 'Received from Motul Philippines', 'Mark Reyes', '2026-08-20 14:00:00'),
+(4, 'Stock-In', 38, 'PO-20260818-4001', 'PO Delivery', 'Received from Motul Philippines', 'Mark Reyes', '2026-08-20 14:00:00');
+
+INSERT INTO AuditLogs (UserID, Username, Role, ActionType, Details, Timestamp) VALUES
+(3, 'clerk', 'Inventory Manager', 'PURCHASE_ORDER', 'Created Purchase Order PO-20260818-4001 for Motul Philippines (Total: ₱27,600.00)', '2026-08-18 09:00:00'),
+(3, 'clerk', 'Inventory Manager', 'STOCK_IN', 'Verified delivery and received items for PO-20260818-4001 into inventory.', '2026-08-20 14:00:00');
 
 -- PO 2: Yamaha Motor Philippines (Aug 20, 2026)
-INSERT INTO PurchaseOrders (PONumber, SupplierID, RequesterName, RequestedBy, TotalAmount, Status, Remarks, Terms, ShippedVia, OrderDate, ExpectedDate, CreatedAt)
-VALUES ('PO-20260820-4002', 2, 'Mark Reyes', 3, 31650.00, 'Received', 'Yamalube lubricants, genuine belts, coolant and brake fluid', 'Net 30', 'Yamaha Express Fleet', '2026-08-20 10:30:00', '2026-08-22 15:00:00', '2026-08-20 10:30:00');
-SET @NewPOID = SCOPE_IDENTITY();
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 5, 'Yamalube AT 10W-40 4T (800ml)', 'pcs', 70, 150.00, 10500.00);
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 6, 'Yamalube Scooter Gear Oil (100ml)', 'pcs', 70, 45.00, 3150.00);
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 7, 'Yamalube Coolant Pre-mixed (1L)', 'pcs', 40, 95.00, 3800.00);
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 8, 'Yamalube DOT 4 Brake Fluid (100ml)', 'pcs', 40, 55.00, 2200.00);
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 10, 'Yamaha Genuine V-Belt (NMAX V1/V2)', 'pcs', 30, 360.00, 10800.00);
-INSERT INTO StockTransactions VALUES (5, 'Stock-In', 70, 'PO-20260820-4002', 'PO Delivery', 'Received from Yamaha Motor Philippines', 'Mark Reyes', '2026-08-22 15:00:00');
-INSERT INTO StockTransactions VALUES (6, 'Stock-In', 70, 'PO-20260820-4002', 'PO Delivery', 'Received from Yamaha Motor Philippines', 'Mark Reyes', '2026-08-22 15:00:00');
-INSERT INTO StockTransactions VALUES (7, 'Stock-In', 40, 'PO-20260820-4002', 'PO Delivery', 'Received from Yamaha Motor Philippines', 'Mark Reyes', '2026-08-22 15:00:00');
-INSERT INTO StockTransactions VALUES (8, 'Stock-In', 40, 'PO-20260820-4002', 'PO Delivery', 'Received from Yamaha Motor Philippines', 'Mark Reyes', '2026-08-22 15:00:00');
-INSERT INTO StockTransactions VALUES (10, 'Stock-In', 30, 'PO-20260820-4002', 'PO Delivery', 'Received from Yamaha Motor Philippines', 'Mark Reyes', '2026-08-22 15:00:00');
-INSERT INTO AuditLogs VALUES (3, 'clerk', 'Inventory Manager', 'PURCHASE_ORDER', 'Created Purchase Order PO-20260820-4002 for Yamaha Motor Philippines (Total: ₱31,650.00)', '2026-08-20 10:30:00');
-INSERT INTO AuditLogs VALUES (3, 'clerk', 'Inventory Manager', 'STOCK_IN', 'Verified delivery and received items for PO-20260820-4002 into inventory.', '2026-08-22 15:00:00');
+INSERT INTO PurchaseOrders (PONumber, SupplierID, RequesterName, TotalAmount, Status, Remarks, Terms, ShippedVia, OrderDate, ExpectedDate)
+VALUES ('PO-20260820-4002', 2, 'Mark Reyes', 31650.00, 'Received', 'Yamalube lubricants, genuine belts, coolant and brake fluid', 'Net 30', 'Yamaha Express Fleet', '2026-08-20 10:30:00', '2026-08-22 15:00:00');
+
+INSERT INTO PurchaseOrderItems (POID, ProductID, ItemDescription, Unit, Quantity, UnitPrice, TotalPrice) VALUES 
+((SELECT MAX(POID) FROM PurchaseOrders), 5, 'Yamalube AT 10W-40 4T (800ml)', 'pcs', 70, 150.00, 10500.00),
+((SELECT MAX(POID) FROM PurchaseOrders), 6, 'Yamalube Scooter Gear Oil (100ml)', 'pcs', 70, 45.00, 3150.00),
+((SELECT MAX(POID) FROM PurchaseOrders), 7, 'Yamalube Coolant Pre-mixed (1L)', 'pcs', 40, 95.00, 3800.00),
+((SELECT MAX(POID) FROM PurchaseOrders), 8, 'Yamalube DOT 4 Brake Fluid (100ml)', 'pcs', 40, 55.00, 2200.00),
+((SELECT MAX(POID) FROM PurchaseOrders), 10, 'Yamaha Genuine V-Belt (NMAX V1/V2)', 'pcs', 30, 360.00, 10800.00);
+
+INSERT INTO StockTransactions (ProductID, TransactionType, Quantity, ReferenceNumber, Reason, Notes, ProcessedBy, TransactionDate) VALUES
+(5, 'Stock-In', 70, 'PO-20260820-4002', 'PO Delivery', 'Received from Yamaha Motor Philippines', 'Mark Reyes', '2026-08-22 15:00:00'),
+(6, 'Stock-In', 70, 'PO-20260820-4002', 'PO Delivery', 'Received from Yamaha Motor Philippines', 'Mark Reyes', '2026-08-22 15:00:00'),
+(7, 'Stock-In', 40, 'PO-20260820-4002', 'PO Delivery', 'Received from Yamaha Motor Philippines', 'Mark Reyes', '2026-08-22 15:00:00'),
+(8, 'Stock-In', 40, 'PO-20260820-4002', 'PO Delivery', 'Received from Yamaha Motor Philippines', 'Mark Reyes', '2026-08-22 15:00:00'),
+(10, 'Stock-In', 30, 'PO-20260820-4002', 'PO Delivery', 'Received from Yamaha Motor Philippines', 'Mark Reyes', '2026-08-22 15:00:00');
+
+INSERT INTO AuditLogs (UserID, Username, Role, ActionType, Details, Timestamp) VALUES
+(3, 'clerk', 'Inventory Manager', 'PURCHASE_ORDER', 'Created Purchase Order PO-20260820-4002 for Yamaha Motor Philippines (Total: ₱31,650.00)', '2026-08-20 10:30:00'),
+(3, 'clerk', 'Inventory Manager', 'STOCK_IN', 'Verified delivery and received items for PO-20260820-4002 into inventory.', '2026-08-22 15:00:00');
 
 -- PO 3: Everest Auto Supply (Aug 20, 2026)
-INSERT INTO PurchaseOrders (PONumber, SupplierID, RequesterName, RequestedBy, TotalAmount, Status, Remarks, Terms, ShippedVia, OrderDate, ExpectedDate, CreatedAt)
-VALUES ('PO-20260820-4003', 4, 'Mark Reyes', 3, 31950.00, 'Received', 'NGK Spark plugs, Quick tubes, Bendix pads & Maxxis tires', 'COD', 'Everest Truck Delivery', '2026-08-20 11:15:00', '2026-08-22 16:30:00', '2026-08-20 11:15:00');
-SET @NewPOID = SCOPE_IDENTITY();
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 15, 'NGK Standard Spark Plug CPR8EA-9', 'pcs', 80, 80.00, 6400.00);
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 16, 'NGK G-Power Platinum Spark Plug CPR8EAGP-9', 'pcs', 50, 110.00, 5500.00);
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 17, 'Quick Motorcycle Inner Tube 14"', 'pcs', 60, 75.00, 4500.00);
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 18, 'Maxxis Victra S98 ST 110/70-13 Tubeless', 'pcs', 10, 1050.00, 10500.00);
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 19, 'Bendix Motorcycle Front Brake Pads', 'pcs', 36, 140.00, 5040.00);
-INSERT INTO StockTransactions VALUES (15, 'Stock-In', 80, 'PO-20260820-4003', 'PO Delivery', 'Received from Everest Auto Supply', 'Mark Reyes', '2026-08-22 16:30:00');
-INSERT INTO StockTransactions VALUES (16, 'Stock-In', 50, 'PO-20260820-4003', 'PO Delivery', 'Received from Everest Auto Supply', 'Mark Reyes', '2026-08-22 16:30:00');
-INSERT INTO StockTransactions VALUES (17, 'Stock-In', 60, 'PO-20260820-4003', 'PO Delivery', 'Received from Everest Auto Supply', 'Mark Reyes', '2026-08-22 16:30:00');
-INSERT INTO StockTransactions VALUES (18, 'Stock-In', 10, 'PO-20260820-4003', 'PO Delivery', 'Received from Everest Auto Supply', 'Mark Reyes', '2026-08-22 16:30:00');
-INSERT INTO StockTransactions VALUES (19, 'Stock-In', 36, 'PO-20260820-4003', 'PO Delivery', 'Received from Everest Auto Supply', 'Mark Reyes', '2026-08-22 16:30:00');
-INSERT INTO AuditLogs VALUES (3, 'clerk', 'Inventory Manager', 'PURCHASE_ORDER', 'Created Purchase Order PO-20260820-4003 for Everest Auto & Motorcycle Supply (Total: ₱31,950.00)', '2026-08-20 11:15:00');
-INSERT INTO AuditLogs VALUES (3, 'clerk', 'Inventory Manager', 'STOCK_IN', 'Verified delivery and received items for PO-20260820-4003 into inventory.', '2026-08-22 16:30:00');
+INSERT INTO PurchaseOrders (PONumber, SupplierID, RequesterName, TotalAmount, Status, Remarks, Terms, ShippedVia, OrderDate, ExpectedDate)
+VALUES ('PO-20260820-4003', 4, 'Mark Reyes', 31950.00, 'Received', 'NGK Spark plugs, Quick tubes, Bendix pads & Maxxis tires', 'COD', 'Everest Truck Delivery', '2026-08-20 11:15:00', '2026-08-22 16:30:00');
+
+INSERT INTO PurchaseOrderItems (POID, ProductID, ItemDescription, Unit, Quantity, UnitPrice, TotalPrice) VALUES 
+((SELECT MAX(POID) FROM PurchaseOrders), 15, 'NGK Standard Spark Plug CPR8EA-9', 'pcs', 80, 80.00, 6400.00),
+((SELECT MAX(POID) FROM PurchaseOrders), 16, 'NGK G-Power Platinum Spark Plug CPR8EAGP-9', 'pcs', 50, 110.00, 5500.00),
+((SELECT MAX(POID) FROM PurchaseOrders), 17, 'Quick Motorcycle Inner Tube 14"', 'pcs', 60, 75.00, 4500.00),
+((SELECT MAX(POID) FROM PurchaseOrders), 18, 'Maxxis Victra S98 ST 110/70-13 Tubeless', 'pcs', 10, 1050.00, 10500.00),
+((SELECT MAX(POID) FROM PurchaseOrders), 19, 'Bendix Motorcycle Front Brake Pads', 'pcs', 36, 140.00, 5040.00);
+
+INSERT INTO StockTransactions (ProductID, TransactionType, Quantity, ReferenceNumber, Reason, Notes, ProcessedBy, TransactionDate) VALUES
+(15, 'Stock-In', 80, 'PO-20260820-4003', 'PO Delivery', 'Received from Everest Auto Supply', 'Mark Reyes', '2026-08-22 16:30:00'),
+(16, 'Stock-In', 50, 'PO-20260820-4003', 'PO Delivery', 'Received from Everest Auto Supply', 'Mark Reyes', '2026-08-22 16:30:00'),
+(17, 'Stock-In', 60, 'PO-20260820-4003', 'PO Delivery', 'Received from Everest Auto Supply', 'Mark Reyes', '2026-08-22 16:30:00'),
+(18, 'Stock-In', 10, 'PO-20260820-4003', 'PO Delivery', 'Received from Everest Auto Supply', 'Mark Reyes', '2026-08-22 16:30:00'),
+(19, 'Stock-In', 36, 'PO-20260820-4003', 'PO Delivery', 'Received from Everest Auto Supply', 'Mark Reyes', '2026-08-22 16:30:00');
+
+INSERT INTO AuditLogs (UserID, Username, Role, ActionType, Details, Timestamp) VALUES
+(3, 'clerk', 'Inventory Manager', 'PURCHASE_ORDER', 'Created Purchase Order PO-20260820-4003 for Everest Auto & Motorcycle Supply (Total: ₱31,950.00)', '2026-08-20 11:15:00'),
+(3, 'clerk', 'Inventory Manager', 'STOCK_IN', 'Verified delivery and received items for PO-20260820-4003 into inventory.', '2026-08-22 16:30:00');
 
 -- PO 4: Brembo Racing PH (Sep 05, 2026)
-INSERT INTO PurchaseOrders (PONumber, SupplierID, RequesterName, RequestedBy, TotalAmount, Status, Remarks, Terms, ShippedVia, OrderDate, ExpectedDate, CreatedAt)
-VALUES ('PO-20260905-4004', 3, 'Mark Reyes', 3, 17400.00, 'Received', 'Brembo Ceramic Front Brake Pads & DOT4 fluids', 'Net 15', 'SpeedTech Logistics', '2026-09-05 13:00:00', '2026-09-07 14:00:00', '2026-09-05 13:00:00');
-SET @NewPOID = SCOPE_IDENTITY();
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 11, 'Brembo Ceramic Front Brake Pads (NMAX/Aerox)', 'pcs', 40, 260.00, 10400.00);
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 12, 'Brembo Premium Brake Fluid DOT 4 (250ml)', 'pcs', 30, 140.00, 4200.00);
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 9, 'Yamaha Aerox 155 Air Filter', 'pcs', 10, 280.00, 2800.00);
-INSERT INTO StockTransactions VALUES (11, 'Stock-In', 40, 'PO-20260905-4004', 'PO Delivery', 'Received from Brembo Racing PH', 'Mark Reyes', '2026-09-07 14:00:00');
-INSERT INTO StockTransactions VALUES (12, 'Stock-In', 30, 'PO-20260905-4004', 'PO Delivery', 'Received from Brembo Racing PH', 'Mark Reyes', '2026-09-07 14:00:00');
-INSERT INTO StockTransactions VALUES (9, 'Stock-In', 10, 'PO-20260905-4004', 'PO Delivery', 'Received from Brembo Racing PH', 'Mark Reyes', '2026-09-07 14:00:00');
-INSERT INTO AuditLogs VALUES (3, 'clerk', 'Inventory Manager', 'PURCHASE_ORDER', 'Created Purchase Order PO-20260905-4004 for Brembo Racing PH (Total: ₱17,400.00)', '2026-09-05 13:00:00');
-INSERT INTO AuditLogs VALUES (3, 'clerk', 'Inventory Manager', 'STOCK_IN', 'Verified delivery and received items for PO-20260905-4004 into inventory.', '2026-09-07 14:00:00');
+INSERT INTO PurchaseOrders (PONumber, SupplierID, RequesterName, TotalAmount, Status, Remarks, Terms, ShippedVia, OrderDate, ExpectedDate)
+VALUES ('PO-20260905-4004', 3, 'Mark Reyes', 17400.00, 'Received', 'Brembo Ceramic Front Brake Pads & DOT4 fluids', 'Net 15', 'SpeedTech Logistics', '2026-09-05 13:00:00', '2026-09-07 14:00:00');
+
+INSERT INTO PurchaseOrderItems (POID, ProductID, ItemDescription, Unit, Quantity, UnitPrice, TotalPrice) VALUES 
+((SELECT MAX(POID) FROM PurchaseOrders), 11, 'Brembo Ceramic Front Brake Pads (NMAX/Aerox)', 'pcs', 40, 260.00, 10400.00),
+((SELECT MAX(POID) FROM PurchaseOrders), 12, 'Brembo Premium Brake Fluid DOT 4 (250ml)', 'pcs', 30, 140.00, 4200.00),
+((SELECT MAX(POID) FROM PurchaseOrders), 9, 'Yamaha Aerox 155 Air Filter', 'pcs', 10, 280.00, 2800.00);
+
+INSERT INTO StockTransactions (ProductID, TransactionType, Quantity, ReferenceNumber, Reason, Notes, ProcessedBy, TransactionDate) VALUES
+(11, 'Stock-In', 40, 'PO-20260905-4004', 'PO Delivery', 'Received from Brembo Racing PH', 'Mark Reyes', '2026-09-07 14:00:00'),
+(12, 'Stock-In', 30, 'PO-20260905-4004', 'PO Delivery', 'Received from Brembo Racing PH', 'Mark Reyes', '2026-09-07 14:00:00'),
+(9, 'Stock-In', 10, 'PO-20260905-4004', 'PO Delivery', 'Received from Brembo Racing PH', 'Mark Reyes', '2026-09-07 14:00:00');
+
+INSERT INTO AuditLogs (UserID, Username, Role, ActionType, Details, Timestamp) VALUES
+(3, 'clerk', 'Inventory Manager', 'PURCHASE_ORDER', 'Created Purchase Order PO-20260905-4004 for Brembo Racing PH (Total: ₱17,400.00)', '2026-09-05 13:00:00'),
+(3, 'clerk', 'Inventory Manager', 'STOCK_IN', 'Verified delivery and received items for PO-20260905-4004 into inventory.', '2026-09-07 14:00:00');
 
 -- PO 5: PowerDrive Wholesale Distribution (Sep 18, 2026)
-INSERT INTO PurchaseOrders (PONumber, SupplierID, RequesterName, RequestedBy, TotalAmount, Status, Remarks, Terms, ShippedVia, OrderDate, ExpectedDate, CreatedAt)
-VALUES ('PO-20260918-4005', 5, 'Mark Reyes', 3, 18700.00, 'Received', 'Bando Drive Belts and 13g Roller Flyball weights', 'Net 30', 'PowerDrive Van', '2026-09-18 10:00:00', '2026-09-20 15:30:00', '2026-09-18 10:00:00');
-SET @NewPOID = SCOPE_IDENTITY();
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 13, 'Bando Power Drive Belt (Honda Click 125/150)', 'pcs', 35, 250.00, 8750.00);
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 14, 'Bando Flyball Set 13g (Aerox/NMAX)', 'pcs', 45, 130.00, 5850.00);
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 9, 'Yamaha Aerox 155 Air Filter', 'pcs', 15, 270.00, 4050.00);
-INSERT INTO StockTransactions VALUES (13, 'Stock-In', 35, 'PO-20260918-4005', 'PO Delivery', 'Received from PowerDrive Wholesale', 'Mark Reyes', '2026-09-20 15:30:00');
-INSERT INTO StockTransactions VALUES (14, 'Stock-In', 45, 'PO-20260918-4005', 'PO Delivery', 'Received from PowerDrive Wholesale', 'Mark Reyes', '2026-09-20 15:30:00');
-INSERT INTO StockTransactions VALUES (9, 'Stock-In', 15, 'PO-20260918-4005', 'PO Delivery', 'Received from PowerDrive Wholesale', 'Mark Reyes', '2026-09-20 15:30:00');
-INSERT INTO AuditLogs VALUES (3, 'clerk', 'Inventory Manager', 'PURCHASE_ORDER', 'Created Purchase Order PO-20260918-4005 for PowerDrive Wholesale Distribution (Total: ₱18,700.00)', '2026-09-18 10:00:00');
-INSERT INTO AuditLogs VALUES (3, 'clerk', 'Inventory Manager', 'STOCK_IN', 'Verified delivery and received items for PO-20260918-4005 into inventory.', '2026-09-20 15:30:00');
+INSERT INTO PurchaseOrders (PONumber, SupplierID, RequesterName, TotalAmount, Status, Remarks, Terms, ShippedVia, OrderDate, ExpectedDate)
+VALUES ('PO-20260918-4005', 5, 'Mark Reyes', 18700.00, 'Received', 'Bando Drive Belts and 13g Roller Flyball weights', 'Net 30', 'PowerDrive Van', '2026-09-18 10:00:00', '2026-09-20 15:30:00');
+
+INSERT INTO PurchaseOrderItems (POID, ProductID, ItemDescription, Unit, Quantity, UnitPrice, TotalPrice) VALUES 
+((SELECT MAX(POID) FROM PurchaseOrders), 13, 'Bando Power Drive Belt (Honda Click 125/150)', 'pcs', 35, 250.00, 8750.00),
+((SELECT MAX(POID) FROM PurchaseOrders), 14, 'Bando Flyball Set 13g (Aerox/NMAX)', 'pcs', 45, 130.00, 5850.00),
+((SELECT MAX(POID) FROM PurchaseOrders), 9, 'Yamaha Aerox 155 Air Filter', 'pcs', 15, 270.00, 4050.00);
+
+INSERT INTO StockTransactions (ProductID, TransactionType, Quantity, ReferenceNumber, Reason, Notes, ProcessedBy, TransactionDate) VALUES
+(13, 'Stock-In', 35, 'PO-20260918-4005', 'PO Delivery', 'Received from PowerDrive Wholesale', 'Mark Reyes', '2026-09-20 15:30:00'),
+(14, 'Stock-In', 45, 'PO-20260918-4005', 'PO Delivery', 'Received from PowerDrive Wholesale', 'Mark Reyes', '2026-09-20 15:30:00'),
+(9, 'Stock-In', 15, 'PO-20260918-4005', 'PO Delivery', 'Received from PowerDrive Wholesale', 'Mark Reyes', '2026-09-20 15:30:00');
+
+INSERT INTO AuditLogs (UserID, Username, Role, ActionType, Details, Timestamp) VALUES
+(3, 'clerk', 'Inventory Manager', 'PURCHASE_ORDER', 'Created Purchase Order PO-20260918-4005 for PowerDrive Wholesale Distribution (Total: ₱18,700.00)', '2026-09-18 10:00:00'),
+(3, 'clerk', 'Inventory Manager', 'STOCK_IN', 'Verified delivery and received items for PO-20260918-4005 into inventory.', '2026-09-20 15:30:00');
 
 -- PO 6: Yamaha Motor Philippines (Oct 02, 2026)
-INSERT INTO PurchaseOrders (PONumber, SupplierID, RequesterName, RequestedBy, TotalAmount, Status, Remarks, Terms, ShippedVia, OrderDate, ExpectedDate, CreatedAt)
-VALUES ('PO-20261002-4006', 2, 'Mark Reyes', 3, 21500.00, 'Received', 'Monthly Yamalube oils & NMAX drive belts restock', 'Net 30', 'Yamaha Express Fleet', '2026-10-02 11:00:00', '2026-10-04 14:00:00', '2026-10-02 11:00:00');
-SET @NewPOID = SCOPE_IDENTITY();
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 5, 'Yamalube AT 10W-40 4T (800ml)', 'pcs', 50, 150.00, 7500.00);
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 6, 'Yamalube Scooter Gear Oil (100ml)', 'pcs', 40, 45.00, 1800.00);
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 10, 'Yamaha Genuine V-Belt (NMAX V1/V2)', 'pcs', 20, 360.00, 7200.00);
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 9, 'Yamaha Aerox 155 Air Filter', 'pcs', 18, 270.00, 4860.00);
-INSERT INTO StockTransactions VALUES (5, 'Stock-In', 50, 'PO-20261002-4006', 'PO Delivery', 'Received from Yamaha Motor Philippines', 'Mark Reyes', '2026-10-04 14:00:00');
-INSERT INTO StockTransactions VALUES (6, 'Stock-In', 40, 'PO-20261002-4006', 'PO Delivery', 'Received from Yamaha Motor Philippines', 'Mark Reyes', '2026-10-04 14:00:00');
-INSERT INTO StockTransactions VALUES (10, 'Stock-In', 20, 'PO-20261002-4006', 'PO Delivery', 'Received from Yamaha Motor Philippines', 'Mark Reyes', '2026-10-04 14:00:00');
-INSERT INTO StockTransactions VALUES (9, 'Stock-In', 18, 'PO-20261002-4006', 'PO Delivery', 'Received from Yamaha Motor Philippines', 'Mark Reyes', '2026-10-04 14:00:00');
-INSERT INTO AuditLogs VALUES (3, 'clerk', 'Inventory Manager', 'PURCHASE_ORDER', 'Created Purchase Order PO-20261002-4006 for Yamaha Motor Philippines (Total: ₱21,500.00)', '2026-10-02 11:00:00');
-INSERT INTO AuditLogs VALUES (3, 'clerk', 'Inventory Manager', 'STOCK_IN', 'Verified delivery and received items for PO-20261002-4006 into inventory.', '2026-10-04 14:00:00');
+INSERT INTO PurchaseOrders (PONumber, SupplierID, RequesterName, TotalAmount, Status, Remarks, Terms, ShippedVia, OrderDate, ExpectedDate)
+VALUES ('PO-20261002-4006', 2, 'Mark Reyes', 21500.00, 'Received', 'Monthly Yamalube oils & NMAX drive belts restock', 'Net 30', 'Yamaha Express Fleet', '2026-10-02 11:00:00', '2026-10-04 14:00:00');
+
+INSERT INTO PurchaseOrderItems (POID, ProductID, ItemDescription, Unit, Quantity, UnitPrice, TotalPrice) VALUES 
+((SELECT MAX(POID) FROM PurchaseOrders), 5, 'Yamalube AT 10W-40 4T (800ml)', 'pcs', 50, 150.00, 7500.00),
+((SELECT MAX(POID) FROM PurchaseOrders), 6, 'Yamalube Scooter Gear Oil (100ml)', 'pcs', 40, 45.00, 1800.00),
+((SELECT MAX(POID) FROM PurchaseOrders), 10, 'Yamaha Genuine V-Belt (NMAX V1/V2)', 'pcs', 20, 360.00, 7200.00),
+((SELECT MAX(POID) FROM PurchaseOrders), 9, 'Yamaha Aerox 155 Air Filter', 'pcs', 18, 270.00, 4860.00);
+
+INSERT INTO StockTransactions (ProductID, TransactionType, Quantity, ReferenceNumber, Reason, Notes, ProcessedBy, TransactionDate) VALUES
+(5, 'Stock-In', 50, 'PO-20261002-4006', 'PO Delivery', 'Received from Yamaha Motor Philippines', 'Mark Reyes', '2026-10-04 14:00:00'),
+(6, 'Stock-In', 40, 'PO-20261002-4006', 'PO Delivery', 'Received from Yamaha Motor Philippines', 'Mark Reyes', '2026-10-04 14:00:00'),
+(10, 'Stock-In', 20, 'PO-20261002-4006', 'PO Delivery', 'Received from Yamaha Motor Philippines', 'Mark Reyes', '2026-10-04 14:00:00'),
+(9, 'Stock-In', 18, 'PO-20261002-4006', 'PO Delivery', 'Received from Yamaha Motor Philippines', 'Mark Reyes', '2026-10-04 14:00:00');
+
+INSERT INTO AuditLogs (UserID, Username, Role, ActionType, Details, Timestamp) VALUES
+(3, 'clerk', 'Inventory Manager', 'PURCHASE_ORDER', 'Created Purchase Order PO-20261002-4006 for Yamaha Motor Philippines (Total: ₱21,500.00)', '2026-10-02 11:00:00'),
+(3, 'clerk', 'Inventory Manager', 'STOCK_IN', 'Verified delivery and received items for PO-20261002-4006 into inventory.', '2026-10-04 14:00:00');
 
 -- PO 7: Motul Philippines (Oct 15, 2026)
-INSERT INTO PurchaseOrders (PONumber, SupplierID, RequesterName, RequestedBy, TotalAmount, Status, Remarks, Terms, ShippedVia, OrderDate, ExpectedDate, CreatedAt)
-VALUES ('PO-20261015-4007', 1, 'Mark Reyes', 3, 18000.00, 'Received', 'Mid-October lubricants & cleaner spray batch', 'Net 30', 'Motul Logistics Van', '2026-10-15 09:30:00', '2026-10-17 11:30:00', '2026-10-15 09:30:00');
-SET @NewPOID = SCOPE_IDENTITY();
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 1, 'Motul Scooter Expert LE 10W40 4T (800ml)', 'pcs', 50, 180.00, 9000.00);
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 2, 'Motul Scooter Gear Oil 80W90 (120ml)', 'pcs', 45, 60.00, 2700.00);
-INSERT INTO PurchaseOrderItems VALUES (@NewPOID, 3, 'Motul Brake & Parts Clean Spray (400ml)', 'pcs', 42, 150.00, 6300.00);
-INSERT INTO StockTransactions VALUES (1, 'Stock-In', 50, 'PO-20261015-4007', 'PO Delivery', 'Received from Motul Philippines', 'Mark Reyes', '2026-10-17 11:30:00');
-INSERT INTO StockTransactions VALUES (2, 'Stock-In', 45, 'PO-20261015-4007', 'PO Delivery', 'Received from Motul Philippines', 'Mark Reyes', '2026-10-17 11:30:00');
-INSERT INTO StockTransactions VALUES (3, 'Stock-In', 42, 'PO-20261015-4007', 'PO Delivery', 'Received from Motul Philippines', 'Mark Reyes', '2026-10-17 11:30:00');
-INSERT INTO AuditLogs VALUES (3, 'clerk', 'Inventory Manager', 'PURCHASE_ORDER', 'Created Purchase Order PO-20261015-4007 for Motul Philippines (Total: ₱18,000.00)', '2026-10-15 09:30:00');
-INSERT INTO AuditLogs VALUES (3, 'clerk', 'Inventory Manager', 'STOCK_IN', 'Verified delivery and received items for PO-20261015-4007 into inventory.', '2026-10-17 11:30:00');
+INSERT INTO PurchaseOrders (PONumber, SupplierID, RequesterName, TotalAmount, Status, Remarks, Terms, ShippedVia, OrderDate, ExpectedDate)
+VALUES ('PO-20261015-4007', 1, 'Mark Reyes', 18000.00, 'Received', 'Mid-October lubricants & cleaner spray batch', 'Net 30', 'Motul Logistics Van', '2026-10-15 09:30:00', '2026-10-17 11:30:00');
 
-PRINT '✔️ Purchase Orders, deliveries, and connected Audit Logs generated.';
+INSERT INTO PurchaseOrderItems (POID, ProductID, ItemDescription, Unit, Quantity, UnitPrice, TotalPrice) VALUES 
+((SELECT MAX(POID) FROM PurchaseOrders), 1, 'Motul Scooter Expert LE 10W40 4T (800ml)', 'pcs', 50, 180.00, 9000.00),
+((SELECT MAX(POID) FROM PurchaseOrders), 2, 'Motul Scooter Gear Oil 80W90 (120ml)', 'pcs', 45, 60.00, 2700.00),
+((SELECT MAX(POID) FROM PurchaseOrders), 3, 'Motul Brake & Parts Clean Spray (400ml)', 'pcs', 42, 150.00, 6300.00);
+
+INSERT INTO StockTransactions (ProductID, TransactionType, Quantity, ReferenceNumber, Reason, Notes, ProcessedBy, TransactionDate) VALUES
+(1, 'Stock-In', 50, 'PO-20261015-4007', 'PO Delivery', 'Received from Motul Philippines', 'Mark Reyes', '2026-10-17 11:30:00'),
+(2, 'Stock-In', 45, 'PO-20261015-4007', 'PO Delivery', 'Received from Motul Philippines', 'Mark Reyes', '2026-10-17 11:30:00'),
+(3, 'Stock-In', 42, 'PO-20261015-4007', 'PO Delivery', 'Received from Motul Philippines', 'Mark Reyes', '2026-10-17 11:30:00');
+
+INSERT INTO AuditLogs (UserID, Username, Role, ActionType, Details, Timestamp) VALUES
+(3, 'clerk', 'Inventory Manager', 'PURCHASE_ORDER', 'Created Purchase Order PO-20261015-4007 for Motul Philippines (Total: ₱18,000.00)', '2026-10-15 09:30:00'),
+(3, 'clerk', 'Inventory Manager', 'STOCK_IN', 'Verified delivery and received items for PO-20261015-4007 into inventory.', '2026-10-17 11:30:00');
+
+PRINT '✔️ Purchase Orders and Supplier Deliveries generated.';
 
 -- ============================================================================
 -- 11. DAILY SALES & JOB ORDERS LOOP (AUG 21, 2026 - OCT 19, 2026)
@@ -432,210 +472,4 @@ BEGIN
     VALUES (2, 'cashier', 'Cashier', 'LOGIN', 'Cashier Ruby Dela Cruz opened POS shift drawer.', CAST(@DayLogStr + ' 07:55:25' AS DATETIME));
 
     INSERT INTO AuditLogs (UserID, Username, Role, ActionType, Details, Timestamp) 
-    VALUES (3, 'clerk', 'Inventory Manager', 'LOGIN', 'Inventory Manager Mark Reyes signed in.', CAST(@DayLogStr + ' 08:00:10' AS DATETIME));
-
-    -- 15 to 26 customers total (8-14 retail sales + 7-12 job orders)
-    DECLARE @SalesCount INT = 8 + ABS(CHECKSUM(NEWID())) % 7;   -- 8 to 14 Sales
-    DECLARE @JOCount INT = 7 + ABS(CHECKSUM(NEWID())) % 6;      -- 7 to 12 Job Orders
-
-    -- ────────────────────────────────────────────────────────
-    -- A. GENERATE RETAIL SALES (INV-YYYYMMDD-0001, 0002...)
-    -- ────────────────────────────────────────────────────────
-    DECLARE @s INT = 1;
-    WHILE @s <= @SalesCount
-    BEGIN
-        DECLARE @InvoiceNo NVARCHAR(50) = 'INV-' + @DateStr + '-' + RIGHT('0000' + CAST(@s AS VARCHAR(10)), 4);
-        
-        DECLARE @CustID INT = 1 + ABS(CHECKSUM(NEWID())) % @CustCount;
-        DECLARE @CustName NVARCHAR(100) = (SELECT Name FROM @Customers WHERE ID = @CustID);
-        
-        -- Time distributed between 08:30 and 17:30
-        DECLARE @SaleSecOffset INT = 30600 + ABS(CHECKSUM(NEWID())) % 32400;
-        DECLARE @SaleTime DATETIME = DATEADD(SECOND, @SaleSecOffset, CAST(@CurrDate AS DATETIME));
-
-        -- Cashier: Ruby Dela Cruz (UserID 2)
-        DECLARE @CashierID INT = 2;
-
-        -- Payment: 75% Cash, 25% E-Wallet GCash
-        DECLARE @IsEWallet BIT = CASE WHEN ABS(CHECKSUM(NEWID())) % 4 = 0 THEN 1 ELSE 0 END;
-        DECLARE @PayMethod NVARCHAR(50) = CASE WHEN @IsEWallet = 1 THEN 'E-Wallet (GCash)' ELSE 'Cash' END;
-        DECLARE @PayRef NVARCHAR(50) = CASE WHEN @IsEWallet = 1 THEN 'GC-' + CAST(1000000000 + ABS(CHECKSUM(NEWID())) % 9000000000 AS NVARCHAR(50)) ELSE NULL END;
-
-        -- 70% small purchases (60-120), 30% standard maintenance oils/fluids (150-240)
-        DECLARE @PID1 INT, @Price1 DECIMAL(10,2);
-        IF ABS(CHECKSUM(NEWID())) % 10 < 7
-        BEGIN
-            -- Small parts: NGK Spark plug (15), Yamalube Gear oil (6), Quick Tube (17), Motul Gear oil (2), Coolant (7), DOT4 (8)
-            SELECT TOP 1 @PID1 = ProductID, @Price1 = SellingPrice 
-            FROM Products WHERE ProductID IN (2, 6, 7, 8, 15, 17)
-            ORDER BY NEWID();
-        END
-        ELSE
-        BEGIN
-            -- Standard oils: Yamalube AT (5), Motul Expert (1), NGK Platinum (16), Bendix Pads (19)
-            SELECT TOP 1 @PID1 = ProductID, @Price1 = SellingPrice 
-            FROM Products WHERE ProductID IN (1, 5, 16, 19)
-            ORDER BY NEWID();
-        END
-
-        DECLARE @SubTotal DECIMAL(10,2) = @Price1;
-        DECLARE @AmtPaid DECIMAL(10,2) = CASE WHEN @IsEWallet = 1 THEN @SubTotal ELSE CEILING(@SubTotal / 50.0) * 50.0 END;
-        IF @AmtPaid < @SubTotal SET @AmtPaid = @SubTotal;
-        DECLARE @Change DECIMAL(10,2) = @AmtPaid - @SubTotal;
-
-        INSERT INTO Sales (InvoiceNo, UserID, CustomerName, PaymentMethod, PaymentRef, SubTotal, Discount, TotalAmount, AmountPaid, ChangeAmount, Status, SaleDate)
-        VALUES (@InvoiceNo, @CashierID, @CustName, @PayMethod, @PayRef, @SubTotal, 0.00, @SubTotal, @AmtPaid, @Change, 'Completed', @SaleTime);
-        DECLARE @NewSaleID INT = SCOPE_IDENTITY();
-
-        INSERT INTO SalesDetails (SaleID, ProductID, Quantity, UnitPrice, Subtotal)
-        VALUES (@NewSaleID, @PID1, 1, @Price1, @Price1);
-
-        INSERT INTO StockTransactions (ProductID, TransactionType, Quantity, ReferenceNumber, Reason, Notes, ProcessedBy, TransactionDate)
-        VALUES (@PID1, 'Stock-Out', 1, @InvoiceNo, 'POS Sale', 'Sold to ' + @CustName, 'Ruby Dela Cruz', @SaleTime);
-
-        -- Connected History Log: INVENTORY ActionType
-        INSERT INTO AuditLogs (UserID, Username, Role, ActionType, Details, Timestamp)
-        VALUES (2, 'cashier', 'Cashier', 'INVENTORY', 'Completed POS Sale ' + @InvoiceNo + ' for customer ' + @CustName + '. Total: ₱' + CONVERT(NVARCHAR(30), @SubTotal) + ' via ' + @PayMethod, @SaleTime);
-
-        SET @s = @s + 1;
-    END;
-
-    -- ────────────────────────────────────────────────────────
-    -- B. GENERATE JOB ORDERS (JO-YYYYMMDD-0001, 0002...)
-    -- ────────────────────────────────────────────────────────
-    DECLARE @j INT = 1;
-    WHILE @j <= @JOCount
-    BEGIN
-        DECLARE @JONo NVARCHAR(50) = 'JO-' + @DateStr + '-' + RIGHT('0000' + CAST(@j AS VARCHAR(10)), 4);
-        
-        DECLARE @JOCustID INT = 1 + ABS(CHECKSUM(NEWID())) % @CustCount;
-        DECLARE @JOCustName NVARCHAR(100) = (SELECT Name FROM @Customers WHERE ID = @JOCustID);
-
-        DECLARE @BikeID INT = 1 + ABS(CHECKSUM(NEWID())) % @BikeCount;
-        DECLARE @Model NVARCHAR(100), @Plate NVARCHAR(50);
-        SELECT @Model = Model, @Plate = Plate FROM @Bikes WHERE ID = @BikeID;
-
-        DECLARE @PrefixID INT = 1 + ABS(CHECKSUM(NEWID())) % @PhoneCount;
-        DECLARE @Phone NVARCHAR(50) = (SELECT Prefix FROM @Phones WHERE ID = @PrefixID) + '-' + RIGHT('000' + CAST(ABS(CHECKSUM(NEWID())) % 1000 AS NVARCHAR(10)), 3) + '-' + RIGHT('0000' + CAST(ABS(CHECKSUM(NEWID())) % 10000 AS NVARCHAR(10)), 4);
-
-        -- Mechanic: Bert Magsino (1) or James Nacionales (2), or occasionally Unassigned (NULL)
-        DECLARE @MechRoll INT = ABS(CHECKSUM(NEWID())) % 10;
-        DECLARE @MechID INT = CASE WHEN @MechRoll <= 4 THEN 1 WHEN @MechRoll <= 8 THEN 2 ELSE NULL END;
-        DECLARE @MechName NVARCHAR(100) = CASE WHEN @MechID = 1 THEN 'Bert Magsino' WHEN @MechID = 2 THEN 'James Nacionales' ELSE 'Unassigned' END;
-
-        DECLARE @JOSecOffset INT = 30000 + ABS(CHECKSUM(NEWID())) % 30600;
-        DECLARE @JOTime DATETIME = DATEADD(SECOND, @JOSecOffset, CAST(@CurrDate AS DATETIME));
-        DECLARE @CompTime DATETIME = DATEADD(MINUTE, 35 + ABS(CHECKSUM(NEWID())) % 50, @JOTime);
-
-        DECLARE @JOIsEWallet BIT = CASE WHEN ABS(CHECKSUM(NEWID())) % 4 = 0 THEN 1 ELSE 0 END;
-        DECLARE @JOPayMethod NVARCHAR(50) = CASE WHEN @JOIsEWallet = 1 THEN 'E-Wallet (GCash)' ELSE 'Cash' END;
-        DECLARE @JOPayRef NVARCHAR(50) = CASE WHEN @JOIsEWallet = 1 THEN 'GC-' + CAST(1000000000 + ABS(CHECKSUM(NEWID())) % 9000000000 AS NVARCHAR(50)) ELSE NULL END;
-
-        -- Service selection:
-        -- 70% regular minor services: Oil change (1, fee 70), Gear oil (2, fee 50), Brake service (3, fee 120), Vulcanize (5, fee 80), Spark plug (6, fee 50)
-        -- 30% CVT Cleaning & tuning (4, fee 200) or FI cleaning (7, fee 350)
-        DECLARE @SID INT, @SName NVARCHAR(150), @SFee DECIMAL(10,2);
-        DECLARE @JOPID INT, @JOPName NVARCHAR(150), @JOPPrice DECIMAL(10,2);
-
-        IF ABS(CHECKSUM(NEWID())) % 10 < 7
-        BEGIN
-            -- Minor service
-            SELECT TOP 1 @SID = ServiceID, @SName = ServiceName, @SFee = LaborFee 
-            FROM Services WHERE ServiceID IN (1, 2, 3, 5, 6) ORDER BY NEWID();
-
-            -- Matched part:
-            IF @SID = 1 -- Oil change -> Yamalube (5, 200) or Motul (1, 240)
-                SELECT TOP 1 @JOPID = ProductID, @JOPName = ProductName, @JOPPrice = SellingPrice FROM Products WHERE ProductID IN (1, 5) ORDER BY NEWID();
-            ELSE IF @SID = 2 -- Gear oil -> Yamalube (6, 75) or Motul (2, 95)
-                SELECT TOP 1 @JOPID = ProductID, @JOPName = ProductName, @JOPPrice = SellingPrice FROM Products WHERE ProductID IN (2, 6) ORDER BY NEWID();
-            ELSE IF @SID = 3 -- Brake service -> Bendix Pads (19, 220) or DOT4 Fluid (8, 90)
-                SELECT TOP 1 @JOPID = ProductID, @JOPName = ProductName, @JOPPrice = SellingPrice FROM Products WHERE ProductID IN (8, 19, 20) ORDER BY NEWID();
-            ELSE IF @SID = 6 -- Spark plug service -> NGK Standard (15, 120) or NGK Platinum (16, 160)
-                SELECT TOP 1 @JOPID = ProductID, @JOPName = ProductName, @JOPPrice = SellingPrice FROM Products WHERE ProductID IN (15, 16) ORDER BY NEWID();
-            ELSE -- Vulcanize / tire service -> Quick Tube (17, 120)
-                SELECT TOP 1 @JOPID = ProductID, @JOPName = ProductName, @JOPPrice = SellingPrice FROM Products WHERE ProductID = 17;
-        END
-        ELSE
-        BEGIN
-            -- Comprehensive CVT or Tuning service
-            SELECT TOP 1 @SID = ServiceID, @SName = ServiceName, @SFee = LaborFee 
-            FROM Services WHERE ServiceID IN (4, 7) ORDER BY NEWID();
-
-            IF @SID = 4 -- CVT Cleaning -> Air Filter (9, 420) or Cleaner Spray (3, 220) or Flyballs (14, 200)
-                SELECT TOP 1 @JOPID = ProductID, @JOPName = ProductName, @JOPPrice = SellingPrice FROM Products WHERE ProductID IN (3, 9, 14) ORDER BY NEWID();
-            ELSE -- FI cleaning -> Cleaner Spray (3, 220) or Yamalube Coolant (7, 150)
-                SELECT TOP 1 @JOPID = ProductID, @JOPName = ProductName, @JOPPrice = SellingPrice FROM Products WHERE ProductID IN (3, 7) ORDER BY NEWID();
-        END
-
-        DECLARE @LaborTotal DECIMAL(10,2) = @SFee;
-        DECLARE @PartsTotal DECIMAL(10,2) = @JOPPrice;
-        DECLARE @JOTotal DECIMAL(10,2) = @LaborTotal + @PartsTotal;
-        DECLARE @Notes NVARCHAR(500) = 'Customer requested: ' + @SName + '. Part: ' + @JOPName;
-
-        -- On the very last day (Today, Oct 19), leave 2 jobs in progress/pending
-        DECLARE @JOStatus NVARCHAR(30) = 'Completed';
-        IF @CurrDate = @EndDate AND @j >= (@JOCount - 1)
-        BEGIN
-            SET @JOStatus = CASE WHEN @j = @JOCount THEN 'Pending' ELSE 'In Progress' END;
-            SET @CompTime = NULL;
-        END
-
-        INSERT INTO JobOrders (JobOrderNo, CustomerName, ContactNumber, MotorcycleUnit, PlateNumber, MechanicID, CashierID, TotalLabor, TotalParts, TotalAmount, Status, Notes, PaymentMethod, PaymentRef, CreatedAt, CompletedAt)
-        VALUES (@JONo, @JOCustName, @Phone, @Model, @Plate, @MechID, 2, @LaborTotal, @PartsTotal, @JOTotal, @JOStatus, @Notes, @JOPayMethod, @JOPayRef, @JOTime, @CompTime);
-        DECLARE @NewJOID INT = SCOPE_IDENTITY();
-
-        -- Line items (Formatted exactly matching Receipt modal)
-        INSERT INTO JobOrderItems (JobOrderID, ItemType, ServiceID, ProductID, ItemName, Quantity, UnitPrice, Subtotal)
-        VALUES (@NewJOID, 'Service', @SID, NULL, '[Service Labor] ' + @SName, 1, @SFee, @SFee);
-
-        INSERT INTO JobOrderItems (JobOrderID, ItemType, ServiceID, ProductID, ItemName, Quantity, UnitPrice, Subtotal)
-        VALUES (@NewJOID, 'Product', NULL, @JOPID, @JOPName, 1, @JOPPrice, @JOPPrice);
-
-        IF @JOStatus = 'Completed'
-        BEGIN
-            INSERT INTO StockTransactions (ProductID, TransactionType, Quantity, ReferenceNumber, Reason, Notes, ProcessedBy, TransactionDate)
-            VALUES (@JOPID, 'Stock-Out', 1, @JONo, 'Job Order Service Parts', 'Installed on ' + @Model + ' (' + @Plate + ')', 'Ruby Dela Cruz', @JOTime);
-
-            -- Connected History Log: MAINTENANCE ActionType
-            INSERT INTO AuditLogs (UserID, Username, Role, ActionType, Details, Timestamp)
-            VALUES (2, 'cashier', 'Cashier', 'MAINTENANCE', 'Processed Job Order ' + @JONo + ' for ' + @JOCustName + ' (' + @Model + ' - ' + @Plate + ') by ' + @MechName + '. Total: ₱' + CONVERT(NVARCHAR(30), @JOTotal) + ' via ' + @JOPayMethod, @JOTime);
-        END
-
-        SET @j = @j + 1;
-    END;
-
-    -- Evening Logouts for Shift End
-    IF @CurrDate < @EndDate
-    BEGIN
-        INSERT INTO AuditLogs (UserID, Username, Role, ActionType, Details, Timestamp) 
-        VALUES (2, 'cashier', 'Cashier', 'LOGOUT', 'Cashier Ruby Dela Cruz balanced shift drawer and logged out.', CAST(@DayLogStr + ' 17:35:40' AS DATETIME));
-
-        INSERT INTO AuditLogs (UserID, Username, Role, ActionType, Details, Timestamp) 
-        VALUES (3, 'clerk', 'Inventory Manager', 'LOGOUT', 'Inventory Manager Mark Reyes completed daily stock count.', CAST(@DayLogStr + ' 17:45:00' AS DATETIME));
-
-        INSERT INTO AuditLogs (UserID, Username, Role, ActionType, Details, Timestamp) 
-        VALUES (1, 'admin', 'Admin', 'LOGOUT', 'Administrator Rich Roque logged out.', CAST(@DayLogStr + ' 18:00:15' AS DATETIME));
-    END
-
-    SET @CurrDate = DATEADD(DAY, 1, @CurrDate);
-END;
-
--- 🛡️ 12. Re-enable all foreign key constraints
-EXEC sp_MSforeachtable "ALTER TABLE ? CHECK CONSTRAINT all";
-
-COMMIT TRANSACTION;
-
-PRINT '====================================================================';
-PRINT '🎉 BIKE KINGS SAMPLE DATA (Aug 21 - Oct 19, 2026) CREATED 100%!';
-PRINT '✔️ Invoices formatted as INV-YYYYMMDD-0001 & JO-YYYYMMDD-0001';
-PRINT '✔️ Customers: 15-28 per day';
-PRINT '✔️ Weekly Sales: ₱10,000 - ₱19,500 (Matches target ₱5,000 - ₱20,000)';
-PRINT '✔️ FULLY CONNECTED TO HISTORY LOGS (AuditLogs):';
-PRINT '   - LOGIN & LOGOUT shifts for Admin, Cashier, Inventory Manager';
-PRINT '   - PURCHASE_ORDER creation records';
-PRINT '   - STOCK_IN delivery receipts';
-PRINT '   - INVENTORY POS retail sales';
-PRINT '   - MAINTENANCE Job Order completions with vehicle & mechanic details';
-PRINT '   - SUPPLIERS supplier registration records';
-PRINT '====================================================================';
-GO
+    VALUES (3, 'clerk', 'Inventory Manager', 'LOGIN', 'Inventory Manager Mark Reyes signed in.', CAST(@DayLogStr + '
