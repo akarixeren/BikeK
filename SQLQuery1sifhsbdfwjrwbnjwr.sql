@@ -472,4 +472,210 @@ BEGIN
     VALUES (2, 'cashier', 'Cashier', 'LOGIN', 'Cashier Ruby Dela Cruz opened POS shift drawer.', CAST(@DayLogStr + ' 07:55:25' AS DATETIME));
 
     INSERT INTO AuditLogs (UserID, Username, Role, ActionType, Details, Timestamp) 
-    VALUES (3, 'clerk', 'Inventory Manager', 'LOGIN', 'Inventory Manager Mark Reyes signed in.', CAST(@DayLogStr + '
+    VALUES (3, 'clerk', 'Inventory Manager', 'LOGIN', 'Inventory Manager Mark Reyes signed in.', CAST(@DayLogStr + '08:00:10' AS DATETIME));
+
+    -- 15 to 26 customers total (8-14 retail sales + 7-12 job orders)
+    DECLARE @SalesCount INT = 8 + ABS(CHECKSUM(NEWID())) % 7;   -- 8 to 14 Sales
+    DECLARE @JOCount INT = 7 + ABS(CHECKSUM(NEWID())) % 6;      -- 7 to 12 Job Orders
+
+    -- ────────────────────────────────────────────────────────
+    -- A. GENERATE RETAIL SALES (INV-YYYYMMDD-0001, 0002...)
+    -- ────────────────────────────────────────────────────────
+    DECLARE @s INT = 1;
+    WHILE @s <= @SalesCount
+    BEGIN
+        DECLARE @InvoiceNo NVARCHAR(50) = 'INV-' + @DateStr + '-' + RIGHT('0000' + CAST(@s AS VARCHAR(10)), 4);
+        
+        DECLARE @CustID INT = 1 + ABS(CHECKSUM(NEWID())) % @CustCount;
+        DECLARE @CustName NVARCHAR(100) = (SELECT Name FROM @Customers WHERE ID = @CustID);
+        
+        -- Time distributed between 08:30 and 17:30
+        DECLARE @SaleSecOffset INT = 30600 + ABS(CHECKSUM(NEWID())) % 32400;
+        DECLARE @SaleTime DATETIME = DATEADD(SECOND, @SaleSecOffset, CAST(@CurrDate AS DATETIME));
+
+        -- Cashier: Ruby Dela Cruz (UserID 2)
+        DECLARE @CashierID INT = 2;
+
+        -- Payment: 75% Cash, 25% E-Wallet GCash
+        DECLARE @IsEWallet BIT = CASE WHEN ABS(CHECKSUM(NEWID())) % 4 = 0 THEN 1 ELSE 0 END;
+        DECLARE @PayMethod NVARCHAR(50) = CASE WHEN @IsEWallet = 1 THEN 'E-Wallet (GCash)' ELSE 'Cash' END;
+        DECLARE @PayRef NVARCHAR(50) = CASE WHEN @IsEWallet = 1 THEN 'GC-' + CAST(1000000000 + ABS(CHECKSUM(NEWID())) % 9000000000 AS NVARCHAR(50)) ELSE NULL END;
+
+        -- 70% small purchases (60-120), 30% standard maintenance oils/fluids (150-240)
+        DECLARE @PID1 INT, @Price1 DECIMAL(10,2);
+        IF ABS(CHECKSUM(NEWID())) % 10 < 7
+        BEGIN
+            -- Small parts: NGK Spark plug (15), Yamalube Gear oil (6), Quick Tube (17), Motul Gear oil (2), Coolant (7), DOT4 (8)
+            SELECT TOP 1 @PID1 = ProductID, @Price1 = SellingPrice 
+            FROM Products WHERE ProductID IN (2, 6, 7, 8, 15, 17)
+            ORDER BY NEWID();
+        END
+        ELSE
+        BEGIN
+            -- Standard oils: Yamalube AT (5), Motul Expert (1), NGK Platinum (16), Bendix Pads (19)
+            SELECT TOP 1 @PID1 = ProductID, @Price1 = SellingPrice 
+            FROM Products WHERE ProductID IN (1, 5, 16, 19)
+            ORDER BY NEWID();
+        END
+
+        DECLARE @SubTotal DECIMAL(10,2) = @Price1;
+        DECLARE @AmtPaid DECIMAL(10,2) = CASE WHEN @IsEWallet = 1 THEN @SubTotal ELSE CEILING(@SubTotal / 50.0) * 50.0 END;
+        IF @AmtPaid < @SubTotal SET @AmtPaid = @SubTotal;
+        DECLARE @Change DECIMAL(10,2) = @AmtPaid - @SubTotal;
+
+        INSERT INTO Sales (InvoiceNo, UserID, CustomerName, PaymentMethod, SubTotal, Discount, TotalAmount, AmountPaid, ChangeAmount, SaleDate)
+        VALUES (@InvoiceNo, @CashierID, @CustName, @PayMethod, @SubTotal, 0.00, @SubTotal, @AmtPaid, @Change, @SaleTime);
+        DECLARE @NewSaleID INT = SCOPE_IDENTITY();
+
+        INSERT INTO SalesDetails (SaleID, ProductID, Quantity, UnitPrice, Subtotal)
+        VALUES (@NewSaleID, @PID1, 1, @Price1, @Price1);
+
+        INSERT INTO StockTransactions (ProductID, TransactionType, Quantity, ReferenceNumber, Reason, Notes, ProcessedBy, TransactionDate)
+        VALUES (@PID1, 'Stock-Out', 1, @InvoiceNo, 'POS Sale', 'Sold to ' + @CustName, 'Ruby Dela Cruz', @SaleTime);
+
+        -- Connected History Log: INVENTORY ActionType
+        INSERT INTO AuditLogs (UserID, Username, Role, ActionType, Details, Timestamp)
+        VALUES (2, 'cashier', 'Cashier', 'INVENTORY', 'Completed POS Sale ' + @InvoiceNo + ' for customer ' + @CustName + '. Total: ₱' + CONVERT(NVARCHAR(30), @SubTotal) + ' via ' + @PayMethod, @SaleTime);
+
+        SET @s = @s + 1;
+    END;
+
+    -- ────────────────────────────────────────────────────────
+    -- B. GENERATE JOB ORDERS (JO-YYYYMMDD-0001, 0002...)
+    -- ────────────────────────────────────────────────────────
+    DECLARE @j INT = 1;
+    WHILE @j <= @JOCount
+    BEGIN
+        DECLARE @JONo NVARCHAR(50) = 'JO-' + @DateStr + '-' + RIGHT('0000' + CAST(@j AS VARCHAR(10)), 4);
+        
+        DECLARE @JOCustID INT = 1 + ABS(CHECKSUM(NEWID())) % @CustCount;
+        DECLARE @JOCustName NVARCHAR(100) = (SELECT Name FROM @Customers WHERE ID = @JOCustID);
+
+        DECLARE @BikeID INT = 1 + ABS(CHECKSUM(NEWID())) % @BikeCount;
+        DECLARE @Model NVARCHAR(100), @Plate NVARCHAR(50);
+        SELECT @Model = Model, @Plate = Plate FROM @Bikes WHERE ID = @BikeID;
+
+        DECLARE @PrefixID INT = 1 + ABS(CHECKSUM(NEWID())) % @PhoneCount;
+        DECLARE @Phone NVARCHAR(50) = (SELECT Prefix FROM @Phones WHERE ID = @PrefixID) + '-' + RIGHT('000' + CAST(ABS(CHECKSUM(NEWID())) % 1000 AS NVARCHAR(10)), 3) + '-' + RIGHT('0000' + CAST(ABS(CHECKSUM(NEWID())) % 10000 AS NVARCHAR(10)), 4);
+
+        -- Mechanic: Bert Magsino (1) or James Nacionales (2), or occasionally Unassigned (NULL)
+        DECLARE @MechRoll INT = ABS(CHECKSUM(NEWID())) % 10;
+        DECLARE @MechID INT = CASE WHEN @MechRoll <= 4 THEN 1 WHEN @MechRoll <= 8 THEN 2 ELSE NULL END;
+        DECLARE @MechName NVARCHAR(100) = CASE WHEN @MechID = 1 THEN 'Bert Magsino' WHEN @MechID = 2 THEN 'James Nacionales' ELSE 'Unassigned' END;
+
+        DECLARE @JOSecOffset INT = 30000 + ABS(CHECKSUM(NEWID())) % 30600;
+        DECLARE @JOTime DATETIME = DATEADD(SECOND, @JOSecOffset, CAST(@CurrDate AS DATETIME));
+        DECLARE @CompTime DATETIME = DATEADD(MINUTE, 35 + ABS(CHECKSUM(NEWID())) % 50, @JOTime);
+
+        DECLARE @JOIsEWallet BIT = CASE WHEN ABS(CHECKSUM(NEWID())) % 4 = 0 THEN 1 ELSE 0 END;
+        DECLARE @JOPayMethod NVARCHAR(50) = CASE WHEN @JOIsEWallet = 1 THEN 'E-Wallet (GCash)' ELSE 'Cash' END;
+        DECLARE @JOPayRef NVARCHAR(50) = CASE WHEN @JOIsEWallet = 1 THEN 'GC-' + CAST(1000000000 + ABS(CHECKSUM(NEWID())) % 9000000000 AS NVARCHAR(50)) ELSE NULL END;
+
+        -- Service selection:
+        -- 70% regular minor services: Oil change (1, fee 70), Gear oil (2, fee 50), Brake service (3, fee 120), Vulcanize (5, fee 80), Spark plug (6, fee 50)
+        -- 30% CVT Cleaning & tuning (4, fee 200) or FI cleaning (7, fee 350)
+        DECLARE @SID INT, @SName NVARCHAR(150), @SFee DECIMAL(10,2);
+        DECLARE @JOPID INT, @JOPName NVARCHAR(150), @JOPPrice DECIMAL(10,2);
+
+        IF ABS(CHECKSUM(NEWID())) % 10 < 7
+        BEGIN
+            -- Minor service
+            SELECT TOP 1 @SID = ServiceID, @SName = ServiceName, @SFee = LaborFee 
+            FROM Services WHERE ServiceID IN (1, 2, 3, 5, 6) ORDER BY NEWID();
+
+            -- Matched part:
+            IF @SID = 1 -- Oil change -> Yamalube (5, 200) or Motul (1, 240)
+                SELECT TOP 1 @JOPID = ProductID, @JOPName = ProductName, @JOPPrice = SellingPrice FROM Products WHERE ProductID IN (1, 5) ORDER BY NEWID();
+            ELSE IF @SID = 2 -- Gear oil -> Yamalube (6, 75) or Motul (2, 95)
+                SELECT TOP 1 @JOPID = ProductID, @JOPName = ProductName, @JOPPrice = SellingPrice FROM Products WHERE ProductID IN (2, 6) ORDER BY NEWID();
+            ELSE IF @SID = 3 -- Brake service -> Bendix Pads (19, 220) or DOT4 Fluid (8, 90)
+                SELECT TOP 1 @JOPID = ProductID, @JOPName = ProductName, @JOPPrice = SellingPrice FROM Products WHERE ProductID IN (8, 19, 20) ORDER BY NEWID();
+            ELSE IF @SID = 6 -- Spark plug service -> NGK Standard (15, 120) or NGK Platinum (16, 160)
+                SELECT TOP 1 @JOPID = ProductID, @JOPName = ProductName, @JOPPrice = SellingPrice FROM Products WHERE ProductID IN (15, 16) ORDER BY NEWID();
+            ELSE -- Vulcanize / tire service -> Quick Tube (17, 120)
+                SELECT TOP 1 @JOPID = ProductID, @JOPName = ProductName, @JOPPrice = SellingPrice FROM Products WHERE ProductID = 17;
+        END
+        ELSE
+        BEGIN
+            -- Comprehensive CVT or Tuning service
+            SELECT TOP 1 @SID = ServiceID, @SName = ServiceName, @SFee = LaborFee 
+            FROM Services WHERE ServiceID IN (4, 7) ORDER BY NEWID();
+
+            IF @SID = 4 -- CVT Cleaning -> Air Filter (9, 420) or Cleaner Spray (3, 220) or Flyballs (14, 200)
+                SELECT TOP 1 @JOPID = ProductID, @JOPName = ProductName, @JOPPrice = SellingPrice FROM Products WHERE ProductID IN (3, 9, 14) ORDER BY NEWID();
+            ELSE -- FI cleaning -> Cleaner Spray (3, 220) or Yamalube Coolant (7, 150)
+                SELECT TOP 1 @JOPID = ProductID, @JOPName = ProductName, @JOPPrice = SellingPrice FROM Products WHERE ProductID IN (3, 7) ORDER BY NEWID();
+        END
+
+        DECLARE @LaborTotal DECIMAL(10,2) = @SFee;
+        DECLARE @PartsTotal DECIMAL(10,2) = @JOPPrice;
+        DECLARE @JOTotal DECIMAL(10,2) = @LaborTotal + @PartsTotal;
+        DECLARE @Notes NVARCHAR(500) = 'Customer requested: ' + @SName + '. Part: ' + @JOPName;
+
+        -- On the very last day (Today, Oct 19), leave 2 jobs in progress/pending
+        DECLARE @JOStatus NVARCHAR(30) = 'Completed';
+        IF @CurrDate = @EndDate AND @j >= (@JOCount - 1)
+        BEGIN
+            SET @JOStatus = CASE WHEN @j = @JOCount THEN 'Pending' ELSE 'In Progress' END;
+            SET @CompTime = NULL;
+        END
+
+        INSERT INTO JobOrders (JobOrderNo, CustomerName, ContactNumber, MotorcycleUnit, PlateNumber, MechanicID, CashierID, TotalLabor, TotalParts, TotalAmount, Status, Notes, CreatedAt, CompletedAt)
+        VALUES (@JONo, @JOCustName, @Phone, @Model, @Plate, @MechID, 2, @LaborTotal, @PartsTotal, @JOTotal, @JOStatus, @Notes, @JOTime, @CompTime);
+        DECLARE @NewJOID INT = SCOPE_IDENTITY();
+
+        -- Line items (Formatted exactly matching Receipt modal)
+        INSERT INTO JobOrderItems (JobOrderID, ItemType, ServiceID, ProductID, ItemName, Quantity, UnitPrice, Subtotal)
+        VALUES (@NewJOID, 'Service', @SID, NULL, '[Service Labor] ' + @SName, 1, @SFee, @SFee);
+
+        INSERT INTO JobOrderItems (JobOrderID, ItemType, ServiceID, ProductID, ItemName, Quantity, UnitPrice, Subtotal)
+        VALUES (@NewJOID, 'Product', NULL, @JOPID, @JOPName, 1, @JOPPrice, @JOPPrice);
+
+        IF @JOStatus = 'Completed'
+        BEGIN
+            INSERT INTO StockTransactions (ProductID, TransactionType, Quantity, ReferenceNumber, Reason, Notes, ProcessedBy, TransactionDate)
+            VALUES (@JOPID, 'Stock-Out', 1, @JONo, 'Job Order Service Parts', 'Installed on ' + @Model + ' (' + @Plate + ')', 'Ruby Dela Cruz', @JOTime);
+
+            -- Connected History Log: MAINTENANCE ActionType
+            INSERT INTO AuditLogs (UserID, Username, Role, ActionType, Details, Timestamp)
+            VALUES (2, 'cashier', 'Cashier', 'MAINTENANCE', 'Processed Job Order ' + @JONo + ' for ' + @JOCustName + ' (' + @Model + ' - ' + @Plate + ') by ' + @MechName + '. Total: ₱' + CONVERT(NVARCHAR(30), @JOTotal) + ' via ' + @JOPayMethod, @JOTime);
+        END
+
+        SET @j = @j + 1;
+    END;
+
+    -- Evening Logouts for Shift End
+    IF @CurrDate < @EndDate
+    BEGIN
+        INSERT INTO AuditLogs (UserID, Username, Role, ActionType, Details, Timestamp) 
+        VALUES (2, 'cashier', 'Cashier', 'LOGOUT', 'Cashier Ruby Dela Cruz balanced shift drawer and logged out.', CAST(@DayLogStr + ' 17:35:40' AS DATETIME));
+
+        INSERT INTO AuditLogs (UserID, Username, Role, ActionType, Details, Timestamp) 
+        VALUES (3, 'clerk', 'Inventory Manager', 'LOGOUT', 'Inventory Manager Mark Reyes completed daily stock count.', CAST(@DayLogStr + ' 17:45:00' AS DATETIME));
+
+        INSERT INTO AuditLogs (UserID, Username, Role, ActionType, Details, Timestamp) 
+        VALUES (1, 'admin', 'Admin', 'LOGOUT', 'Administrator Rich Roque logged out.', CAST(@DayLogStr + ' 18:00:15' AS DATETIME));
+    END
+
+    SET @CurrDate = DATEADD(DAY, 1, @CurrDate);
+END;
+
+-- 🛡️ 12. Re-enable all foreign key constraints
+EXEC sp_MSforeachtable "ALTER TABLE ? CHECK CONSTRAINT all";
+
+COMMIT TRANSACTION;
+
+PRINT '====================================================================';
+PRINT '🎉 BIKE KINGS SAMPLE DATA (Aug 21 - Oct 19, 2026) CREATED 100%!';
+PRINT '✔️ Invoices formatted as INV-YYYYMMDD-0001 & JO-YYYYMMDD-0001';
+PRINT '✔️ Customers: 15-28 per day';
+PRINT '✔️ Weekly Sales: ₱10,000 - ₱19,500 (Matches target ₱5,000 - ₱20,000)';
+PRINT '✔️ FULLY CONNECTED TO HISTORY LOGS (AuditLogs):';
+PRINT '   - LOGIN & LOGOUT shifts for Admin, Cashier, Inventory Manager';
+PRINT '   - PURCHASE_ORDER creation records';
+PRINT '   - STOCK_IN delivery receipts';
+PRINT '   - INVENTORY POS retail sales';
+PRINT '   - MAINTENANCE Job Order completions with vehicle & mechanic details';
+PRINT '   - SUPPLIERS supplier registration records';
+PRINT '====================================================================';
+GO
