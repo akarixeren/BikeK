@@ -836,7 +836,7 @@ namespace BikeKings_System.Views.Cashier {
                 return;
             }
             _contentLoaded = true;
-            System.Uri resourceLocater = new System.Uri("/BikeKings_System;component/views/cashier/cashierdashboardwindow.xaml", System.UriKind.Relative);
+            System.Uri resourceLocater = new System.Uri("/BikeKings_System;V1.0.0.0;component/views/cashier/cashierdashboardwindow.xaml", System.UriKind.Relative);
             
             #line 1 "..\..\..\..\..\Views\Cashier\CashierDashboardWindow.xaml"
             System.Windows.Application.LoadComponent(this, resourceLocater);

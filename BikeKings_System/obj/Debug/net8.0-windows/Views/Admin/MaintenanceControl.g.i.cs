@@ -196,7 +196,7 @@ namespace BikeKings_System.Views.Admin {
                 return;
             }
             _contentLoaded = true;
-            System.Uri resourceLocater = new System.Uri("/BikeKings_System;component/views/admin/maintenancecontrol.xaml", System.UriKind.Relative);
+            System.Uri resourceLocater = new System.Uri("/BikeKings_System;V1.0.0.0;component/views/admin/maintenancecontrol.xaml", System.UriKind.Relative);
             
             #line 1 "..\..\..\..\..\Views\Admin\MaintenanceControl.xaml"
             System.Windows.Application.LoadComponent(this, resourceLocater);

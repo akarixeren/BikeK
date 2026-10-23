@@ -1536,11 +1536,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\zionindaya\\OneDrive\\Desktop\\BikeKings_System\\BikeKings_System\\BikeKings_System.csproj",
+      "projectUniqueName": "C:\\Users\\zionindaya\\OneDrive\\Desktop\\CSAI_BIKEKINGS\\BikeK\\BikeKings_System\\BikeKings_System.csproj",
       "projectName": "BikeKings_System",
-      "projectPath": "C:\\Users\\zionindaya\\OneDrive\\Desktop\\BikeKings_System\\BikeKings_System\\BikeKings_System.csproj",
+      "projectPath": "C:\\Users\\zionindaya\\OneDrive\\Desktop\\CSAI_BIKEKINGS\\BikeK\\BikeKings_System\\BikeKings_System.csproj",
       "packagesPath": "C:\\Users\\zionindaya\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\zionindaya\\OneDrive\\Desktop\\BikeKings_System\\BikeKings_System\\obj\\",
+      "outputPath": "C:\\Users\\zionindaya\\OneDrive\\Desktop\\CSAI_BIKEKINGS\\BikeK\\BikeKings_System\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

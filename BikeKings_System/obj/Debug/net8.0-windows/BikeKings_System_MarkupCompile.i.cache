@@ -4,17 +4,17 @@
 winexe
 C#
 .cs
-C:\Users\zionindaya\OneDrive\Desktop\BikeKings_System\BikeKings_System\obj\Debug\net8.0-windows\
+C:\Users\zionindaya\OneDrive\Desktop\CSAI_BIKEKINGS\BikeK\BikeKings_System\obj\Debug\net8.0-windows\
 BikeKings_System
 none
 false
 TRACE;DEBUG;NET;NET8_0;NETCOREAPP;WINDOWS;WINDOWS7_0;NET5_0_OR_GREATER;NET6_0_OR_GREATER;NET7_0_OR_GREATER;NET8_0_OR_GREATER;NETCOREAPP3_0_OR_GREATER;NETCOREAPP3_1_OR_GREATER;WINDOWS7_0_OR_GREATER
-C:\Users\zionindaya\OneDrive\Desktop\BikeKings_System\BikeKings_System\App.xaml
+C:\Users\zionindaya\OneDrive\Desktop\CSAI_BIKEKINGS\BikeK\BikeKings_System\App.xaml
 122028956452
 24-1310625303
 30-42483223
 215-2097180535
 Views\Admin\AdminDashboardWindow.xaml;Views\Admin\BackupRecoveryControl.xaml;Views\Admin\CreateUserWindow.xaml;Views\Admin\HistoryLogsControl.xaml;Views\Admin\InventoryControl.xaml;Views\Admin\MaintenanceControl.xaml;Views\Admin\ProfileControl.xaml;Views\Admin\SalesOrdersControl.xaml;Views\Admin\SuppliersControl.xaml;Views\Cashier\CashierDashboardWindow.xaml;Views\LoginWindow.xaml;Views\StoreClerk\StoreClerkDashboardWindow.xaml;
 
-True
+False
 
